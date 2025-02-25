@@ -76,6 +76,7 @@ def covert_to_python_type(val):
 def parse_ini_file(ini_file):
     config = ConfigParser()
     config.read(ini_file)
+    print(ini_file)
 
     ini_dir = os.path.dirname(os.path.abspath(ini_file))
     sections_dict = {}
@@ -337,6 +338,7 @@ def run_grant_pipeline(grant_info_path, timestamp):
     parsed_data = parse_ini_file(grant_info_path)
     openai_client = OpenAI(api_key=open(KEY_PATH, 'r').read())
     for grant_id, grant_info in parsed_data.items():
+        print(grant_id)
         model = grant_info[MODEL]
         if model not in MODEL_MAX_CONTEXT_SIZE:
             raise ValueError(f'unknown model: {model}')
@@ -459,7 +461,7 @@ PROJECT_TEMPLATE = {
                 "GRANT SYNOPSIS: {synopsis}\n\n"
                 "PROJECT SUMMARY:\n"
                 "Overview: {summary_overview}\n"
-                "Intellectual Merit: {summary_int_merit}\n"
+                "Intellectual Merit: {intellectual_merit}\n"
                 "Broader Impacts: {summary_broader}"
             ),
         },
@@ -486,7 +488,7 @@ PROJECT_TEMPLATE = {
                 "GRANT SYNOPSIS: {synopsis}\n\n"
                 "PROJECT SUMMARY:\n"
                 "Overview: {summary_overview}\n"
-                "Intellectual Merit: {summary_int_merit}\n\n"
+                "Intellectual Merit: {intellectual_merit}\n\n"
                 "AI IMPACT (Draft): {previous_text}\n\n"
                 "TEAM INFORMATION:\n"
                 "{team_info}"

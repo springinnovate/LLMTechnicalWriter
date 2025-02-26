@@ -595,12 +595,13 @@ def run_full_pipeline(config_path, model):
 
     intermediate_stage_path = f"{basename}_{timestamp}_intermediate.json"
     with open(intermediate_stage_path, 'w', encoding='utf-8') as intermediate_file:
-        intermediate_file.dumps({'preprocessed_data': preprocessed_data}, indent=2)
-        intermediate_file.dumps({'answers': answers}, indent=2)
+        intermediate_file.write(json.dumps({'preprocessed_data': preprocessed_data}, indent=2))
+        intermediate_file.write(json.dumps({'answers': answers}, indent=2))
 
     final_data = {**preprocessed_data, **answers}
 
     # 4) Output stage
+    LOGGER.info('analysis complete, processing output')
     output_config = config.get('output', {})
     output_report_path = f'{basename}_{timestamp}.txt'
     generate_output_file(output_config, final_data, output_report_path)

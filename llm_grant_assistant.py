@@ -480,14 +480,12 @@ def preprocess_input(openai_context, preprocessing_config, model):
 
 
 def analysis(openai_context, analysis_config, preprocessed_data, global_config, model):
-
     developer_prompt = global_config.get('developer_prompt', '')
     all_answers = {}
 
     # Collect tasks for all questions in a list
     tasks = []
     for question_key, question_info in analysis_config.items():
-        LOGGER.info(f'Analysis section: {question_key}')
         developer_instructions = question_info['developer']
         user_prompt = question_info['user_template']
         assistant_prompt = question_info['assistant_template']
@@ -515,8 +513,10 @@ def analysis(openai_context, analysis_config, preprocessed_data, global_config, 
             future = executor.submit(generate_text, openai_context, prompt_dict, model)
             future_to_key[future] = question_key
 
+        LOGGER.info('processing analysis section')
         for future in concurrent.futures.as_completed(future_to_key):
             question_key = future_to_key[future]
+            LOGGER.info(f'Analysis section: {question_key} complete')
             try:
                 result = future.result()
             except Exception as e:
@@ -591,11 +591,18 @@ def run_full_pipeline(config_path, model):
     analysis_config = config.get('analysis', {})
     answers = analysis(openai_context, analysis_config, preprocessed_data, global_config, model)
 
+    basename = os.path.splitext(os.path.basename(config_path))[0]
+
+    intermediate_stage_path = f"{basename}_{timestamp}_intermediate.json"
+    with open(intermediate_stage_path, 'w', encoding='utf-8') as intermediate_file:
+        intermediate_file.dumps({'preprocessed_data': preprocessed_data}, indent=2)
+        intermediate_file.dumps({'answers': answers}, indent=2)
+
     final_data = {**preprocessed_data, **answers}
 
     # 4) Output stage
     output_config = config.get('output', {})
-    output_report_path = f'{os.path.splitext(os.path.basename(config_path))[0]}_{timestamp}.txt'
+    output_report_path = f'{basename}_{timestamp}.txt'
     generate_output_file(output_config, final_data, output_report_path)
 
 

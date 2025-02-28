@@ -1,4 +1,7 @@
+import hashlib
 import concurrent.futures
+import pickle
+import threading
 from configparser import ConfigParser
 import argparse
 import datetime
@@ -54,6 +57,27 @@ MODEL_MAX_CONTEXT_SIZE = {
 ALLOWED_ROLES = ['user', 'developer', 'assistant']
 
 
+CACHE_FILE = "generate_text_cache.pkl"
+cache_lock = threading.Lock()
+
+if os.path.exists(CACHE_FILE):
+    with cache_lock:
+        with open(CACHE_FILE, "rb") as f:
+            PROMPT_CACHE = pickle.load(f)
+else:
+    PROMPT_CACHE = {}
+
+
+def save_cache():
+    with cache_lock:
+        with open(CACHE_FILE, "wb") as f:
+            pickle.dump(PROMPT_CACHE, f)
+
+def cache_key(prompt_dict, model):
+    data = {"model": model, "prompt_dict": prompt_dict}
+    return hashlib.md5(json.dumps(data, sort_keys=True).encode("utf-8")).hexdigest()
+
+
 def covert_to_python_type(val):
     if val is None:
         return None
@@ -103,7 +127,13 @@ def parse_ini_file(ini_file):
     return sections_dict
 
 
-def generate_text(openai_context, prompt_dict, model):
+def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
+    key = cache_key(prompt_dict, model)
+
+    with cache_lock:
+        if not force_regenerate and key in PROMPT_CACHE:
+            return PROMPT_CACHE[key]
+
     for key in prompt_dict:
         if key not in ALLOWED_ROLES:
             print(f'this is the prompt dict: {prompt_dict}')
@@ -143,264 +173,11 @@ def generate_text(openai_context, prompt_dict, model):
         raise RuntimeError(
             f'error, result is {finish_reason} and response text is: "{response_text}"')
 
+    with cache_lock:
+        PROMPT_CACHE[key] = response_text
+        save_cache()
+
     return response_text
-
-
-# def analyze_proposal_idea(openai_context, proposal_idea):
-#     prompt_dict = {
-#         'developer': 'Analyze the following project description and provide a structured summary for later use.',
-#         'user': proposal_idea
-#     }
-#     return generate_text(openai_context, prompt_dict)
-
-
-# def analyze_review_criteria(openai_context, review_criteria):
-#     prompt_dict = {
-#         'developer': 'Analyze the following grant review criteria and provide a structured summary for later use in analyzing whether a result meets those criteria.',
-#         'user': review_criteria
-#     }
-#     return generate_text(openai_context, prompt_dict)
-
-
-# def analyze_team(openai_context, team_info):
-#     # team_info is a dict of 'name': info
-#     for individual_name, individual_info in team_info.items():
-#         team_info[individual_name] = generate_text(
-#             openai_context,
-#             {
-#                 'developer': 'Analyze the following author/team member publication snippet and filter through what looks like webpage extras, and author lists, and instead just analyze the publication titles. From there create a summary of the expertise of this author based on the article titles for further use in justifying expertise in collaborations in a grant.',
-#                 'user': individual_info
-#             })
-#     return team_info
-
-
-# # ------------------------------------
-# # Stage 3: Draft Generation per Section
-# # ------------------------------------
-# def generate_section_draft(section_name, template, proposal_idea, retrieved_snippets):
-#     joined_snippets = '\n'.join(retrieved_snippets)
-#     prompt = template.format(proposal_idea=proposal_idea, retrieved_text=joined_snippets)
-#     return generate_text(prompt)
-
-# def generate_first_draft(proposal_idea):
-#     section_drafts = {}
-#     for section in SECTIONS:
-#         template = SECTION_TEMPLATES.get(section, '')
-#         retrieved_snippets = retrieve_content(proposal_idea, section)
-#         draft = generate_section_draft(section, template, proposal_idea, retrieved_snippets)
-#         section_drafts[section] = draft
-#     return section_drafts
-
-# # ------------------------------------
-# # Stage 4: Iterative Refinement
-# # ------------------------------------
-# def refine_section(section_name, draft_text):
-#     prompt = (
-#         f'Review and refine the following {section_name} section:\n'
-#         f'{draft_text}\n'
-#         'Improve clarity, fix errors, and ensure completeness. Provide the revised text.'
-#     )
-#     return generate_text(prompt)
-
-# def refine_all_sections(section_drafts):
-#     refined_sections = {}
-#     for section, draft_text in section_drafts.items():
-#         refined_sections[section] = refine_section(section, draft_text)
-#     return refined_sections
-
-# # ------------------------------------
-# # Stage 5: Cross-Section Consistency Check
-# # ------------------------------------
-# def check_consistency_across_sections(section_drafts):
-#     full_text = '\n\n'.join([f'{sec}:\n{txt}' for sec, txt in section_drafts.items()])
-#     prompt = (
-#         f'Review all sections for consistency:\n{full_text}\n'
-#         'Identify any inconsistencies in style or content, and output a final merged version.'
-#     )
-#     return generate_text(prompt)
-
-
-# def analyze_synopsis(openai_context, grant_synopsis):
-#     prompt_dict = {
-#         'developer': 'Analyze the following grant synopsis and provide a structured summary for later use in writing a grant with team ideas, team info, and other references.',
-#         'user': grant_synopsis
-#     }
-#     return generate_text(openai_context, prompt_dict)
-
-
-# def create_project_summary(openai_context, grant_stages):
-#     '''
-#     === Project Summary ===
-#     [1 page maximum]
-#     * Content
-#         - Overview
-#         - Intellectual Merit
-#         - Broader Impacts
-#     '''
-#     project_summary = {}
-#     overview_prompt = {
-#         'developer': 'Write a 1 paragraph overview of the project given the proposal idea and grant synopsis.',
-#         'user': grant_stages['proposal_idea'],
-#         'assistant': f'PROPOSAL IDEA: {grant_stages['proposal_idea']}.\n\nGRANT SYNOPSIS: {grant_stages['synopsis']}'
-#     }
-#     project_summary['overview'] = generate_text(openai_context, overview_prompt)
-
-#     intellectual_merit_prompt = {
-#         'developer': 'Write 2 paragraphs of the intellectual merit of the proposal given the proposal idea and grant synopsis.',
-#         'user': grant_stages['proposal_idea'],
-#         'assistant': f'PROPOSAL IDEA: {grant_stages['proposal_idea']}.\n\nGRANT SYNOPSIS: {grant_stages['synopsis']}'
-#     }
-#     project_summary['intellectual_merit'] = generate_text(openai_context, intellectual_merit_prompt)
-
-#     broader_impacts_prompt = {
-#         'developer': 'Write 1 paragraph of the broader impacts of the proposal given the proposal idea and grant synopsis.',
-#         'user': grant_stages['proposal_idea'],
-#         'assistant': f'PROPOSAL IDEA: {grant_stages['proposal_idea']}.\n\nGRANT SYNOPSIS: {grant_stages['synopsis']}'
-#     }
-#     project_summary['broader_impacts'] = generate_text(openai_context, broader_impacts_prompt)
-
-#     return project_summary
-
-
-# def create_project_description(openai_context, grant_stages):
-#     '''
-#     === Project Description ===
-#     * Geosciences Advancement
-#     * AI Impact
-#     * Partnerships
-#     '''
-#     project_description = {}
-
-#     # Aggregate relevant assistant content for Geosciences Advancement
-#     geosciences_context = f'''
-#     PROPOSAL IDEA: {grant_stages['proposal_idea']}.
-#     GRANT SYNOPSIS: {grant_stages['synopsis']}.
-
-#     PROJECT SUMMARY:
-#     Overview: {grant_stages['project_summary'].get('overview', '')}
-#     Intellectual Merit: {grant_stages['project_summary'].get('intellectual_merit', '')}
-#     Broader Impacts: {grant_stages['project_summary'].get('broader_impacts', '')}
-#     '''
-
-#     geosciences_prompt = {
-#         'developer': 'Write a page explaining how the project will advance geoscience research or education. Identify the geoscience challenge or 'science driver' and how AI methods help address it. Do not make up any names or information. If you feel something is lacking say so as a note to the authors to expand on when they edit the proposal.',
-#         'user': grant_stages['proposal_idea'],
-#         'assistant': geosciences_context
-#     }
-#     project_description['geosciences_advancement'] = generate_text(openai_context, geosciences_prompt)
-
-#     # AI Impact section references the proposal idea and previous sections
-#     ai_impact_context = f'''
-#     PROPOSAL IDEA: {grant_stages['proposal_idea']}.
-#     GRANT SYNOPSIS: {grant_stages['synopsis']}.
-
-#     PROJECT SUMMARY:
-#     Overview: {grant_stages['project_summary'].get('overview', '')}
-
-#     GEOSCIENCES ADVANCEMENT (Draft):
-#     {project_description.get('geosciences_advancement', '')}
-#     '''
-
-#     ai_impact_prompt = {
-#         'developer': 'Write a page describing the innovative use or development of AI techniques and how they overcome current methodological bottlenecks in geoscience research. Do not make up any names or information. If you feel something is lacking say so as a note to the authors to expand on when they edit the proposal.',
-#         'user': grant_stages['proposal_idea'],
-#         'assistant': ai_impact_context
-#     }
-#     project_description['ai_impact'] = generate_text(openai_context, ai_impact_prompt)
-
-#     # Partnerships section references the interdisciplinary team and collaboration details
-#     team_info_context = '\n'.join([f'Team Member {author}: {work}' for author, work in grant_stages['team_info'].items()])
-
-#     partnerships_context = f'''
-#     PROPOSAL IDEA: {grant_stages['proposal_idea']}.
-#     GRANT SYNOPSIS: {grant_stages['synopsis']}.
-
-#     PROJECT SUMMARY:
-#     Overview: {grant_stages['project_summary'].get('overview', '')}
-#     Intellectual Merit: {grant_stages['project_summary'].get('intellectual_merit', '')}
-
-#     AI IMPACT (Draft):
-#     {project_description.get('ai_impact', '')}
-
-#     TEAM INFORMATION:
-#     {team_info_context}
-#     '''
-
-#     partnerships_prompt = {
-#         'developer': 'Write a page describing the interdisciplinary team and collaboration between geoscientists and AI/CS/math experts. Detail how the partners will work together, and plans for cross-training or broadening participation (e.g. student training in AI methods). Refer to the authors by name as indicated in the TEAM INFORMATION section further listed under Team Member {author} the assistant context. Do not make up any names or information. If you feel something is lacking say so as a note to the authors to expand on when they edit the proposal.',
-#         'user': grant_stages['proposal_idea'],
-#         'assistant': partnerships_context
-#     }
-#     project_description['partnerships'] = generate_text(openai_context, partnerships_prompt)
-
-#     return project_description
-
-
-# def run_grant_pipeline(grant_info_path, timestamp):
-#     parsed_data = parse_ini_file(grant_info_path)
-#     openai_client = OpenAI(api_key=open(KEY_PATH, 'r').read())
-#     for grant_id, grant_info in parsed_data.items():
-#         print(grant_id)
-#         model = grant_info[MODEL]
-#         if model not in MODEL_MAX_CONTEXT_SIZE:
-#             raise ValueError(f'unknown model: {model}')
-
-#         openai_context = {
-#             'client': openai_client,
-#             'model': model,
-#         }
-#         if 'temperature' in grant_info:
-#             openai_context['temperature'] = grant_info['temperature']
-
-#         intermediate_stage_path = f'{grant_id}_{timestamp}_intermediate.json'
-#         grant_stages = {}
-
-#         print(f'analyzing proposal idea for: {grant_id}')
-#         grant_stages['proposal_idea'] = analyze_proposal_idea(openai_context, grant_info[IDEA])
-#         with open(intermediate_stage_path, 'w', encoding='utf-8') as f:
-#             f.write(json.dumps({'proposal_idea': grant_stages['proposal_idea']}, indent=2))
-#             f.write('\n')
-
-#         print(f'analyzing review criteria for: {grant_id}')
-#         grant_stages['review_criteria'] = analyze_review_criteria(openai_context, grant_info[REVIEW_CRITERIA])
-#         with open(intermediate_stage_path, 'a', encoding='utf-8') as f:
-#             f.write(json.dumps({'review_criteria': grant_stages['review_criteria']}, indent=2))
-#             f.write('\n')
-
-#         print(f'analyzing synopsis for: {grant_id}')
-#         grant_stages['synopsis'] = analyze_synopsis(openai_context, grant_info[SYNOPSIS])
-#         with open(intermediate_stage_path, 'a', encoding='utf-8') as f:
-#             f.write(json.dumps({'synopsis': grant_stages['synopsis']}, indent=2))
-#             f.write('\n')
-
-#         print(f'generating project summary for: {grant_id}')
-#         grant_stages['project_summary'] = create_project_summary(openai_context, grant_stages)
-#         with open(intermediate_stage_path, 'a', encoding='utf-8') as f:
-#             f.write(json.dumps({'project_summary': grant_stages['project_summary']}, indent=2))
-#             f.write('\n')
-
-#         print(f'analyzing team info for: {grant_id}')
-#         grant_stages['team_info'] = analyze_team(openai_context, grant_info[TEAM])
-#         with open(intermediate_stage_path, 'a', encoding='utf-8') as f:
-#             f.write(json.dumps({'team_info': grant_stages['team_info']}, indent=2))
-#             f.write('\n')
-
-#         print(f'generating project description for: {grant_id}')
-#         grant_stages['project_description'] = create_project_description(openai_context, grant_stages)
-#         with open(intermediate_stage_path, 'a', encoding='utf-8') as f:
-#             f.write(json.dumps({'project_description': grant_stages['project_description']}, indent=2))
-#             f.write('\n')
-
-#         file_path = f'{grant_id}_{timestamp}.txt'
-#         with open(file_path, 'w', encoding='utf-8') as file:
-#             file.write('=== Project Summary ===\n')
-#             for section, body in grant_stages.get('project_summary', {}).items():
-#                 file.write(f'= {section} =\n{body}\n\n')
-#             file.write('=== Project Description ===\n')
-#             for section, body in grant_stages.get('project_description', {}).items():
-#                 file.write(f'= {section} =\n{body}\n\n')
-
-#         print(f'all done, {grant_id} grant proposal is in: {file_path}')
 
 
 def read_pdf_to_text(file_path):
@@ -435,23 +212,29 @@ def preprocess_input(openai_context, preprocessing_config, model):
         LOGGER.info(f'Preprocessing section: {section_name} -- {description}')
 
         files = section_info.get('files', [])
-        results_dict[section_name] = [None] * len(files)
+        expanded_file_items = []
 
-        for idx, file_item in enumerate(files):
+        for file_item in files:
+            prompt_text = file_item['prompt']
+            for matched_path in glob(file_item['file_path']):
+                expanded_file_items.append({
+                    'file_path': matched_path,
+                    'prompt': prompt_text,
+                    'assistant_context': (
+                        f'This filename is {file_item["file_path"]}')
+                })
+
+        results_dict[section_name] = [None] * len(expanded_file_items)
+
+        for idx, file_item in enumerate(expanded_file_items):
             file_path = file_item['file_path']
             prompt_text = file_item['prompt']
-
-            # Read file content synchronously (usually fast relative to an API call).
             file_content = read_file_content(file_path)
-
-            # Build the prompt for this file
             prompt_dict = {
-                'developer': description,   # High-level instructions from the section
-                'user': prompt_text,        # The "prompt" from the config
-                'assistant': file_content,  # The file text itself
+                'developer': description,
+                'user': prompt_text,
+                'assistant': file_content,
             }
-
-            # We'll add the generation step to a task queue
             tasks.append((section_name, idx, prompt_dict))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:

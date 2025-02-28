@@ -216,7 +216,7 @@ def preprocess_input(openai_context, preprocessing_config, model):
 
         for file_item in files:
             prompt_text = file_item['prompt']
-            for matched_path in glob(file_item['file_path']):
+            for matched_path in glob.glob(file_item['file_path']):
                 expanded_file_items.append({
                     'file_path': matched_path,
                     'prompt': prompt_text,
@@ -229,6 +229,7 @@ def preprocess_input(openai_context, preprocessing_config, model):
         for idx, file_item in enumerate(expanded_file_items):
             file_path = file_item['file_path']
             prompt_text = file_item['prompt']
+            LOGGER.info(f'reading {file_path} for: "{prompt_text}')
             file_content = read_file_content(file_path)
             prompt_dict = {
                 'developer': description,

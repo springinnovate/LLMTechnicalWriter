@@ -183,8 +183,10 @@ def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
 def read_pdf_to_text(file_path):
     text = []
     with open(file_path, 'rb') as f:
+        LOGGER.debug(f'reading pdf: {file_path}')
         reader = PyPDF2.PdfReader(f)
-        for page in reader.pages:
+        for page_num, page in enumerate(reader.pages):
+            LOGGER.debug(f'on page {page_num} for {file_path}')
             page_text = page.extract_text()
             if page_text:
                 text.append(page_text)
@@ -294,6 +296,7 @@ def analysis(openai_context, analysis_config, preprocessed_data, global_config, 
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         future_to_key = {}
         for (question_key, prompt_dict) in tasks:
+
             future = executor.submit(generate_text, openai_context, prompt_dict, model)
             future_to_key[future] = question_key
 
@@ -310,30 +313,6 @@ def analysis(openai_context, analysis_config, preprocessed_data, global_config, 
             all_answers[question_key] = result
 
     return all_answers
-
-
-
-
-    # developer_prompt = global_config.get('developer_prompt', '')
-    # all_answers = {}
-    # for question_key, question_info in analysis_config.items():
-    #     developer_instructions = question_info['developer']
-    #     user_prompt = question_info['user_template']
-    #     assistant_prompt = question_info['assistant_template']
-
-    #     # replace any {keyword} with key -> value in preprocessed_data
-    #     formatted_user_prompt = user_prompt.format(**preprocessed_data)
-    #     formatted_assistant_info = assistant_prompt.format(**preprocessed_data)
-
-    #     prompt_dict = {
-    #         'developer': f'{developer_instructions} {developer_prompt}',
-    #         'user': formatted_user_prompt,
-    #         'assistant': formatted_assistant_info
-    #     }
-    #     LOGGER.info(f'analysis "{question_key}": {formatted_user_prompt}')
-    #     answer = generate_text(openai_context, prompt_dict)
-    #     all_answers[question_key] = answer
-    # return all_answers
 
 
 def generate_output_file(output_config, answers, output_filepath):

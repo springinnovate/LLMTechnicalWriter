@@ -1,3 +1,7 @@
+"""This paper was a problem and hung up on page 25:
+
+Antwi et al. - 2024 - Review of climate change adaptation and mitigation implementation in Canada's forest ecosystems part.pdf
+"""
 import hashlib
 import concurrent.futures
 import pickle
@@ -150,6 +154,7 @@ def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
         raise ValueError(
             f'The prompt required {tokens_needed} tokens but only '
             f'{tokens_allowed} is available')
+    LOGGER.info(f'{tokens_needed} for processing')
 
     messages = []
     for role, content in prompt_dict.items():
@@ -243,6 +248,7 @@ def preprocess_input(openai_context, preprocessing_config, model):
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         future_to_id = {}
         for (section_name, idx, prompt_dict) in tasks:
+            LOGGER.info(f'ask the question: {prompt_dict}')
             future = executor.submit(generate_text, openai_context, prompt_dict, model)
             future_to_id[future] = (section_name, idx)
 
@@ -272,6 +278,7 @@ def analysis(openai_context, analysis_config, preprocessed_data, global_config, 
     # Collect tasks for all questions in a list
     tasks = []
     for question_key, question_info in analysis_config.items():
+        LOGGER.debug(f'asking this questoin: {question_key}')
         developer_instructions = question_info['developer']
         user_prompt = question_info['user_template']
         assistant_prompt = question_info['assistant_template']
@@ -348,10 +355,12 @@ def run_full_pipeline(config_path, model):
     openai_context = {
         'client': openai_client,
     }
+    LOGGER.info('preprocess data')
     preprocessed_data = preprocess_input(openai_context, preprocessing_config, model)
 
     # 3) Analysis stage
     analysis_config = config.get('analysis', {})
+    LOGGER.info('analysis stage')
     answers = analysis(openai_context, analysis_config, preprocessed_data, global_config, model)
 
     basename = os.path.splitext(os.path.basename(config_path))[0]

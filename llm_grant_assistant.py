@@ -244,16 +244,27 @@ def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
 
 
 def read_pdf_to_text(file_path):
+    # Construct a cache key that includes the file path and modification time
+    mtime = os.path.getmtime(file_path)
+    key = f"read_pdf_to_text:{file_path}:{mtime}"
+
+    if key in PROMPT_CACHE:
+        return PROMPT_CACHE[key]
+
     text = []
     with open(file_path, 'rb') as f:
-        LOGGER.debug(f'reading pdf: {file_path}')
+        LOGGER.debug(f'Reading PDF: {file_path}')
         reader = PyPDF2.PdfReader(f)
         for page_num, page in enumerate(reader.pages):
-            LOGGER.debug(f'on page {page_num} for {file_path}')
+            LOGGER.debug(f'On page {page_num} for {file_path}')
             page_text = page.extract_text()
             if page_text:
                 text.append(page_text)
-    return '\n'.join(text)
+    combined_text = '\n'.join(text)
+
+    PROMPT_CACHE[key] = combined_text
+    save_cache()
+    return combined_text
 
 
 def read_file_content(file_path):

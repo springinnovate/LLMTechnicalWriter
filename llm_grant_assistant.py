@@ -77,6 +77,7 @@ def save_cache():
         with open(CACHE_FILE, "wb") as f:
             pickle.dump(PROMPT_CACHE, f)
 
+
 def cache_key(prompt_dict, model):
     data = {"model": model, "prompt_dict": prompt_dict}
     return hashlib.md5(json.dumps(data, sort_keys=True).encode("utf-8")).hexdigest()
@@ -134,9 +135,8 @@ def parse_ini_file(ini_file):
 def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
     key = cache_key(prompt_dict, model)
 
-    with cache_lock:
-        if not force_regenerate and key in PROMPT_CACHE:
-            return PROMPT_CACHE[key]
+    if not force_regenerate and key in PROMPT_CACHE:
+        return PROMPT_CACHE[key]
 
     for key in prompt_dict:
         if key not in ALLOWED_ROLES:
@@ -169,19 +169,22 @@ def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
         'messages': messages,
     }
 
+    submessage = messages[0]['content'][:20]
+    LOGGER.info(f'submitting {submessage} to {model}')
     response = openai_context['client'].chat.completions.create(
         **chat_args
     )
     finish_reason = response.choices[0].finish_reason
     response_text = response.choices[0].message.content
     if finish_reason != 'stop':
-        raise RuntimeError(
-            f'error, result is {finish_reason} and response text is: "{response_text}"')
+        error_message = f'error, result is {finish_reason} and response text is: "{response_text}"'
+        raise RuntimeError(error_message)
+    LOGGER.info(f'all done {submessage} to {model}')
 
-    with cache_lock:
-        PROMPT_CACHE[key] = response_text
-        save_cache()
+    PROMPT_CACHE[key] = response_text
+    save_cache()
 
+    LOGGER.info(f'returning response {submessage} to {model}')
     return response_text
 
 
@@ -248,7 +251,7 @@ def preprocess_input(openai_context, preprocessing_config, model):
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         future_to_id = {}
         for (section_name, idx, prompt_dict) in tasks:
-            LOGGER.info(f'ask the question: {prompt_dict}')
+            LOGGER.info(f'ask the question: {prompt_dict["user"][:20]}')
             future = executor.submit(generate_text, openai_context, prompt_dict, model)
             future_to_id[future] = (section_name, idx)
 

@@ -133,59 +133,114 @@ def parse_ini_file(ini_file):
 
 
 def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
-    key = cache_key(prompt_dict, model)
+    """
+    Generate text with an LLM, splitting the 'application' portion if too large.
+    This function will recursively split only the 'application' content (since
+    that's typically the largest), generate partial results, and then combine
+    those partial results into a final answer.
+    """
 
+    def safe_generate(context, p_dict, mdl, force=False):
+        # Validate allowed roles
+        for r in p_dict:
+            if r not in ALLOWED_ROLES:
+                raise ValueError(f'{r} not allowed in a prompt dict')
+
+        messages = []
+        for role, content in p_dict.items():
+            if content:
+                messages.append({'role': role, 'content': content})
+
+        chat_args = {'model': mdl, 'messages': messages}
+        snippet = messages[0]['content'][:20] if messages else ''
+        LOGGER.info(f'Submitting snippet: {snippet}')
+        response = context['client'].chat.completions.create(**chat_args)
+        finish_reason = response.choices[0].finish_reason
+        response_text = response.choices[0].message.content
+        if finish_reason != 'stop':
+            raise RuntimeError(
+                f'Error, result is {finish_reason}, response text: "{response_text}"'
+            )
+        return response_text
+
+    def tokens_for_prompt(p_dict):
+        full_text = ''.join(p_dict.get(k, '') for k in p_dict)
+        return len(tokenizer.encode(full_text))
+
+    key = cache_key(prompt_dict, model)
     if not force_regenerate and key in PROMPT_CACHE:
         return PROMPT_CACHE[key]
 
-    for key in prompt_dict:
-        if key not in ALLOWED_ROLES:
-            print(f'this is the prompt dict: {prompt_dict}')
-            raise ValueError(f'{key} not allowed in a prompt dict')
     tokenizer = tiktoken.encoding_for_model(model)
-    tokens_needed = len(tokenizer.encode(
-        ''.join([content for content in prompt_dict.values()])))
-
+    tokens_needed = tokens_for_prompt(prompt_dict)
     tokens_allowed = (
         MODEL_MAX_CONTEXT_SIZE[model]['context_window'] -
-        MODEL_MAX_CONTEXT_SIZE[model]['max_output_tokens'])
+        MODEL_MAX_CONTEXT_SIZE[model]['max_output_tokens']
+    )
 
-    if tokens_needed > tokens_allowed:
+    if tokens_needed <= tokens_allowed:
+        result = safe_generate(
+            openai_context, prompt_dict, model, force_regenerate)
+        PROMPT_CACHE[key] = result
+        save_cache()
+        return result
+
+    # else, application too big -- split it.
+    application_text = prompt_dict.get('application', '')
+    app_tokens = tokenizer.encode(application_text)
+    app_len = len(app_tokens)
+
+    if app_len <= 1:
         raise ValueError(
-            f'The prompt required {tokens_needed} tokens but only '
-            f'{tokens_allowed} is available')
-    LOGGER.info(f'{tokens_needed} for processing')
+            f'{prompt_dict}: kept splitting app and the whole message is too big')
 
-    messages = []
-    for role, content in prompt_dict.items():
-        if content:
-            messages.append({
-                'role': role,
-                'content': content
-            })
+    midpoint = app_len // 2
+    chunk1 = tokenizer.decode(app_tokens[:midpoint])
+    chunk2 = tokenizer.decode(app_tokens[midpoint:])
 
-    chat_args = {
-        'model': model,
-        'messages': messages,
+    # Build partial prompt dicts
+    partial_prompt_dict_1 = dict(prompt_dict)
+    partial_prompt_dict_2 = dict(prompt_dict)
+    partial_prompt_dict_1['application'] = chunk1
+    partial_prompt_dict_2['application'] = chunk2
+
+    # Generate partial results from each chunk
+    partial_1 = generate_text(
+        openai_context,
+        partial_prompt_dict_1,
+        model,
+        force_regenerate
+    )
+    partial_2 = generate_text(
+        openai_context,
+        partial_prompt_dict_2,
+        model,
+        force_regenerate
+    )
+
+    # Combine the partial results. We'll place them both in 'application',
+    # add context in 'developer', and instruct in 'user' to finalize.
+    recombine_prompt = {
+        'developer': (
+            'These two partial results are from the original large "application" '
+            'text that was split. Combine them carefully but do not mention that it was split, act as though the original text was processed in one shot.\n\n'
+        ),
+        'user': (
+            'Please combine the partial results found in "application" into a final cohesive answer.'
+        ),
+        'application': partial_1 + "\n\n" + partial_2
     }
 
-    submessage = messages[0]['content'][:20]
-    LOGGER.info(f'submitting {submessage} to {model}')
-    response = openai_context['client'].chat.completions.create(
-        **chat_args
+    combined_result = generate_text(
+        openai_context,
+        recombine_prompt,
+        model,
+        force_regenerate
     )
-    finish_reason = response.choices[0].finish_reason
-    response_text = response.choices[0].message.content
-    if finish_reason != 'stop':
-        error_message = f'error, result is {finish_reason} and response text is: "{response_text}"'
-        raise RuntimeError(error_message)
-    LOGGER.info(f'all done {submessage} to {model}')
 
-    PROMPT_CACHE[key] = response_text
+    PROMPT_CACHE[key] = combined_result
     save_cache()
-
-    LOGGER.info(f'returning response {submessage} to {model}')
-    return response_text
+    return combined_result
 
 
 def read_pdf_to_text(file_path):

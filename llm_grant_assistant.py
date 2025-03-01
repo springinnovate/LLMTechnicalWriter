@@ -134,8 +134,8 @@ def parse_ini_file(ini_file):
 
 def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
     """
-    Generate text with an LLM, splitting the 'application' portion if too large.
-    This function will recursively split only the 'application' content (since
+    Generate text with an LLM, splitting the '"assistant"' portion if too large.
+    This function will recursively split only the '"assistant"' content (since
     that's typically the largest), generate partial results, and then combine
     those partial results into a final answer.
     """
@@ -185,9 +185,9 @@ def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
         save_cache()
         return result
 
-    # else, application too big -- split it.
-    application_text = prompt_dict.get('application', '')
-    app_tokens = tokenizer.encode(application_text)
+    # else, assistant too big -- split it.
+    assistant_text = prompt_dict.get('assistant', '')
+    app_tokens = tokenizer.encode(assistant_text)
     app_len = len(app_tokens)
 
     if app_len <= 1:
@@ -201,8 +201,8 @@ def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
     # Build partial prompt dicts
     partial_prompt_dict_1 = dict(prompt_dict)
     partial_prompt_dict_2 = dict(prompt_dict)
-    partial_prompt_dict_1['application'] = chunk1
-    partial_prompt_dict_2['application'] = chunk2
+    partial_prompt_dict_1['assistant'] = chunk1
+    partial_prompt_dict_2['assistant'] = chunk2
 
     # Generate partial results from each chunk
     partial_1 = generate_text(
@@ -218,17 +218,17 @@ def generate_text(openai_context, prompt_dict, model, force_regenerate=False):
         force_regenerate
     )
 
-    # Combine the partial results. We'll place them both in 'application',
+    # Combine the partial results. We'll place them both in '"assistant"',
     # add context in 'developer', and instruct in 'user' to finalize.
     recombine_prompt = {
         'developer': (
-            'These two partial results are from the original large "application" '
+            'These two partial results are from the original large "assistant" '
             'text that was split. Combine them carefully but do not mention that it was split, act as though the original text was processed in one shot.\n\n'
         ),
         'user': (
-            'Please combine the partial results found in "application" into a final cohesive answer.'
+            'Please combine the partial results found in ""assistant"" into a final cohesive answer.'
         ),
-        'application': partial_1 + "\n\n" + partial_2
+        'assistant': partial_1 + "\n\n" + partial_2
     }
 
     combined_result = generate_text(

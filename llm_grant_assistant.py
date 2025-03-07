@@ -391,17 +391,16 @@ def analysis(openai_context, analysis_config, preprocessed_data, global_config, 
     return all_answers
 
 
-def generate_output_file(output_config, answers, output_filepath):
-    with open(output_filepath, 'w', encoding='utf-8') as f:
-        for section in output_config:
-            title = section['title']
-            text_template = section['text_template']
+def generate_output(output_config, answers):
+    output_str = ''
+    for section in output_config:
+        title = section['title']
+        text_template = section['text_template']
 
-            rendered_text = text_template.format(**answers)
-            f.write(f'=== {title} ===\n')
-            f.write(rendered_text.strip() + '\n\n')
-
-    LOGGER.info(f'Review report written to {output_filepath}')
+        rendered_text = text_template.format(**answers)
+        output_str += f'=== {title} ===\n'
+        output_str += rendered_text.strip() + '\n\n'
+    return output_str
 
 
 def run_full_pipeline(config_path, model):
@@ -444,8 +443,14 @@ def run_full_pipeline(config_path, model):
     # 4) Output stage
     LOGGER.info('analysis complete, processing output')
     output_config = config.get('output', {})
+    output_str = generate_output(output_config, final_data)
+
+    # 5) double-check
+    LOGGER.info('output complete, double checking result')
     output_report_path = f'{basename}_{timestamp}.txt'
-    generate_output_file(output_config, final_data, output_report_path)
+    with open(output_filepath, 'w', encoding='utf-8') as f:
+        f.write(output_str)
+    LOGGER.info(f'Review report written to {output_filepath}')
 
 
 def main():

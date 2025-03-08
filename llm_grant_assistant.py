@@ -52,10 +52,10 @@ MODEL_MAX_CONTEXT_SIZE = {
         'context_window': 200000,
         'max_output_tokens': 100000
     },
-    'o1': {
-        'context_window': 200000,
-        'max_output_tokens': 100000
-    },
+    # 'o1': {
+    #     'context_window': 200000,
+    #     'max_output_tokens': 100000
+    # },
 }
 
 ALLOWED_ROLES = ['user', 'developer', 'assistant']

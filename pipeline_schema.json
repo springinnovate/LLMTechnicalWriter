@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "developer_prompt": { "type": "string" }
+      },
+      "required": ["developer_prompt"]
+    },
+    "preprocessing": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "type": "object",
+          "properties": {
+            "description": { "type": "string" },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "file_path": { "type": "string" },
+                  "prompt": { "type": "string" }
+                },
+                "required": ["file_path", "prompt"]
+              }
+            }
+          },
+          "required": ["description", "files"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "analysis": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "type": "object",
+          "properties": {
+            "developer": { "type": "string" },
+            "user_template": { "type": "string" },
+            "assistant_template": { "type": "string" }
+          },
+          "required": ["developer", "user_template", "assistant_template"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "text_template": { "type": "string" }
+        },
+        "required": ["title", "text_template"]
+      }
+    }
+  },
+  "required": ["global", "preprocessing", "analysis", "output"],
+  "additionalProperties": false
+}

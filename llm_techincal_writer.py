@@ -1,6 +1,6 @@
+from collections import deque
 import unicodedata
 import re
-import requests
 import hashlib
 import concurrent.futures
 import pickle
@@ -354,53 +354,199 @@ def preprocess_input(openai_context, preprocessing_config, developer_prompt, mod
     return preprocessed_data
 
 
-def analysis(openai_context, analysis_config, preprocessed_data, global_config, model):
-    developer_prompt = global_config.get('developer_prompt', '')
+def get_placeholders(template_str):
+    """
+    Return a set of all placeholders found in a given template string, i.e. {some_name}.
+    Example: "We have {paper_content} and {other_analysis}" -> {"paper_content", "other_analysis"}.
+    """
+    # Tolerate possible spaces within braces, e.g. {  foo  } => "foo"
+    # Then strip them. We'll handle only \w+ for placeholder names.
+    matches = re.findall(r'\{\s*(\w+)\s*\}', template_str)
+    return set(matches)
+
+
+def build_dependency_graph(analysis_config):
+    """
+    Build a dependency graph for analysis questions.
+    Each question can reference other question keys in its user_template or assistant_template.
+    If question B references question A in its template, B depends on A.
+
+    Returns:
+      depends_on: dict of question_key -> set of questions it depends on
+      in_degree: dict of question_key -> integer count of dependencies
+    """
+    question_keys = list(analysis_config.keys())
+    depends_on = {q: set() for q in question_keys}
+    in_degree = {q: 0 for q in question_keys}
+
+    # Collect placeholders from each question's user_template & assistant_template
+    for q in question_keys:
+        q_info = analysis_config[q]
+        user_t = q_info['user_template']
+        assistant_t = q_info['assistant_template']
+
+        # Which placeholders appear?
+        placeholders = get_placeholders(user_t) | get_placeholders(assistant_t)
+
+        # If a placeholder matches another question key, that's a dependency
+        for ph in placeholders:
+            if ph in analysis_config:   # ph is the name of another question
+                depends_on[q].add(ph)
+
+    # Build in_degree counts
+    for q in question_keys:
+        for dep_q in depends_on[q]:
+            in_degree[q] += 1
+
+    return depends_on, in_degree
+
+
+def build_dependency_graph(analysis_config):
+    """
+    Build a dependency graph for analysis questions.
+    Each question can reference other question keys in its user_template or assistant_template.
+    If question B references question A in its template, B depends on A.
+
+    Returns:
+      depends_on: dict of question_key -> set of questions it depends on
+      in_degree: dict of question_key -> integer count of dependencies
+    """
+    question_keys = list(analysis_config.keys())
+    depends_on = {q: set() for q in question_keys}
+    in_degree = {q: 0 for q in question_keys}
+
+    # Collect placeholders from each question's user_template & assistant_template
+    for q in question_keys:
+        q_info = analysis_config[q]
+        user_t = q_info['user_template']
+        assistant_t = q_info['assistant_template']
+
+        # Which placeholders appear?
+        placeholders = get_placeholders(user_t) | get_placeholders(assistant_t)
+
+        # If a placeholder matches another question key, that's a dependency
+        for ph in placeholders:
+            if ph in analysis_config:   # ph is the name of another question
+                depends_on[q].add(ph)
+
+    # Build in_degree counts
+    for q in question_keys:
+        for dep_q in depends_on[q]:
+            in_degree[q] += 1
+
+    return depends_on, in_degree
+
+
+
+def analysis_with_dependencies(
+    openai_context,
+    analysis_config,
+    preprocessed_data,
+    global_config,
+    model="gpt-4o-mini",
+    max_workers=8
+):
+    """
+    Perform analysis of each question, but allow for dependencies between questions.
+    If question B references {questionA}, then B depends on A's answer. We must wait
+    until A is computed before we can generate B's prompt.
+
+    Steps:
+      1) Build a dependency graph by scanning placeholders for references to other question keys.
+      2) Use a layer-based topological approach to compute all questions whose dependencies are
+         satisfied. Compute them in parallel.
+      3) Insert the results into 'all_answers' so that subsequent questions can reference them.
+      4) Continue until all questions are computed or a cycle is detected.
+
+    :param openai_context: dict with the OpenAI client & optional model params
+    :param analysis_config: dict describing each analysis question
+    :param preprocessed_data: dict of data from preprocessing stage, e.g. { "paper_content": "...", ... }
+    :param global_config: optional dict with global developer_prompt or other instructions
+    :param model: model name to use with generate_text
+    :param max_workers: concurrency for thread pool
+    :return: all_answers dict with question_key -> LLM response
+    """
+
     all_answers = {}
+    developer_prompt = global_config.get('developer_prompt', '')
 
-    # Collect tasks for all questions in a list
-    tasks = []
-    for question_key, question_info in analysis_config.items():
-        LOGGER.debug(f'asking this questoin: {question_key}')
-        developer_instructions = question_info['developer']
-        user_prompt = question_info['user_template']
-        assistant_prompt = question_info['assistant_template']
+    # 1) Build the dependency graph
+    depends_on, in_degree = build_dependency_graph(analysis_config)
+    question_keys = list(analysis_config.keys())
 
-        # Replace placeholders {keyword} with preprocessed_data
-        formatted_user_prompt = re.sub(r'\{\s*(\w+)\s*\}', r'{\1}', user_prompt).format(**preprocessed_data)
-        formatted_assistant_info = re.sub(r'\{\s*(\w+)\s*\}', r'{\1}', assistant_prompt).format(**preprocessed_data)
+    # 2) Collect all tasks whose in_degree == 0 to start
+    queue = deque([q for q in question_keys if in_degree[q] == 0])
 
-        # Combine developer instructions with any global developer prompt
-        combined_developer_prompt = f"{developer_instructions} {developer_prompt}".strip()
+    # We'll process tasks in "layers" (all with in_degree == 0 at once).
+    while queue:
+        current_layer = list(queue)
+        queue.clear()
 
-        # Build the prompt_dict
-        prompt_dict = {
-            'developer': combined_developer_prompt,
-            'user': formatted_user_prompt,
-            'assistant': formatted_assistant_info
-        }
+        # We'll gather tasks to run in parallel for this layer
+        tasks = []
+        for q in current_layer:
+            q_info = analysis_config[q]
 
-        tasks.append((question_key, prompt_dict))
+            dev_prompt = q_info["developer"]
+            user_t = q_info["user_template"]
+            assistant_t = q_info["assistant_template"]
 
-    # Execute all tasks in parallel
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        future_to_key = {}
-        for (question_key, prompt_dict) in tasks:
+            # Combine developer instructions with global developer prompt
+            combined_developer = f"{dev_prompt} {developer_prompt}".strip()
 
-            future = executor.submit(generate_text, openai_context, prompt_dict, model)
-            future_to_key[future] = question_key
+            # We can now substitute placeholders with both preprocessed_data + all_answers
+            # Because any dependencies for q are guaranteed to be resolved now.
+            combined_dict = {**preprocessed_data, **all_answers}
 
-        LOGGER.info('processing analysis section')
-        for future in concurrent.futures.as_completed(future_to_key):
-            question_key = future_to_key[future]
-            LOGGER.info(f'Analysis section: {question_key} complete')
-            try:
-                result = future.result()
-            except Exception as e:
-                LOGGER.error(f"Error analyzing question '{question_key}': {e}")
-                result = f"ERROR: {str(e)}"
+            formatted_user = user_t.format(**combined_dict)
+            formatted_assistant = assistant_t.format(**combined_dict)
 
-            all_answers[question_key] = result
+            prompt_dict = {
+                'developer': combined_developer,
+                'user': formatted_user,
+                'assistant': formatted_assistant
+            }
+
+            tasks.append((q, prompt_dict))
+
+        # 3) Execute tasks for this layer in parallel
+        LOGGER.info(f"Analyzing questions in parallel: {current_layer}")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_key = {}
+            for (question_key, prompt_dict) in tasks:
+                future = executor.submit(generate_text, openai_context, prompt_dict, model)
+                future_to_key[future] = question_key
+
+            for future in concurrent.futures.as_completed(future_to_key):
+                finished_q = future_to_key[future]
+                try:
+                    result = future.result()
+                except Exception as e:
+                    LOGGER.error(f"Error analyzing question '{finished_q}': {e}")
+                    result = f"ERROR: {str(e)}"
+
+                # Store the answer
+                all_answers[finished_q] = result
+
+        # 4) After finishing this layer, reduce in_degree for tasks that depend on these
+        for w in question_keys:
+            # If w depends on any question in current_layer, reduce in_degree
+            for finished_q in current_layer:
+                if finished_q in depends_on[w]:
+                    in_degree[w] -= 1
+                    if in_degree[w] < 0:
+                        in_degree[w] = 0  # Just in case
+
+            # If in_degree is now zero and w not computed yet, put in next queue
+            if in_degree[w] == 0 and w not in all_answers:
+                queue.append(w)
+
+    # 5) Check if we have results for all questions
+    #    If not, there's a cycle or unresolved dependency
+    for q in question_keys:
+        if q not in all_answers:
+            LOGGER.error(f"Dependency error: Could not compute {q} due to circular reference or missing data.")
+            all_answers[q] = "ERROR: Circular dependency or missing data"
 
     return all_answers
 

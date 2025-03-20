@@ -460,7 +460,7 @@ def run_full_pipeline(config_path, model):
 
     # 5) double-check
     LOGGER.info('output complete, double checking result')
-    output_path = f'{basename}_{timestamp}.txt'
+    output_path = f'{basename}_{model}_{timestamp}.txt'
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(unicodedata.normalize('NFKC', output_str))
     LOGGER.info(f'Review report written to {output_path}')

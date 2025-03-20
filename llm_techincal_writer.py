@@ -19,7 +19,7 @@ import PyPDF2
 import tiktoken
 from openai import OpenAI
 from jsonschema import validate, ValidationError
-from playwright.sync_api import sync_playwright
+#from playwright.sync_api import sync_playwright
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -467,249 +467,249 @@ def scrape_url(url):
     pass
 
 
-def fetch_orcid_profile_rendered(base_url):
-    group_data = {}
+# def fetch_orcid_profile_rendered(base_url):
+#     group_data = {}
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(base_url)
-        page.wait_for_timeout(2000)
+#     with sync_playwright() as p:
+#         browser = p.chromium.launch(headless=True)
+#         page = browser.new_page()
+#         page.goto(base_url)
+#         page.wait_for_timeout(2000)
 
-        def parse_group_content(group_locator, group_key):
-            sub_elements = group_locator.query_selector_all("app-panel-data")
-            items = []
-            for sub_elem in sub_elements:
-                raw_html = sub_elem.inner_html()
-                text = BeautifulSoup(raw_html, "html.parser").get_text(separator=' ').strip().replace('\\n', '')
-                text = re.sub(r'\s+', ' ', text)
-                items.append(text.strip())
-            return items
+#         def parse_group_content(group_locator, group_key):
+#             sub_elements = group_locator.query_selector_all("app-panel-data")
+#             items = []
+#             for sub_elem in sub_elements:
+#                 raw_html = sub_elem.inner_html()
+#                 text = BeautifulSoup(raw_html, "html.parser").get_text(separator=' ').strip().replace('\\n', '')
+#                 text = re.sub(r'\s+', ' ', text)
+#                 items.append(text.strip())
+#             return items
 
-        def locate_groups(app_names):
-            all_handles = page.query_selector_all("*")
-            group_locs = {}
-            pattern = re.compile(rf"^app-({'|'.join(re.escape(name) for name in app_names)})$")
+#         def locate_groups(app_names):
+#             all_handles = page.query_selector_all("*")
+#             group_locs = {}
+#             pattern = re.compile(rf"^app-({'|'.join(re.escape(name) for name in app_names)})$")
 
-            for h in all_handles:
-                tag_name = h.evaluate("(el) => el.localName")
-                if tag_name and pattern.match(tag_name):
-                    group_locs[h] = tag_name
+#             for h in all_handles:
+#                 tag_name = h.evaluate("(el) => el.localName")
+#                 if tag_name and pattern.match(tag_name):
+#                     group_locs[h] = tag_name
 
-            return group_locs
+#             return group_locs
 
-        groups_found = locate_groups(['affiliations', 'work-stack-group'])
+#         groups_found = locate_groups(['affiliations', 'work-stack-group'])
 
-        for handle, tag_name in groups_found.items():
-            group_key = tag_name  # e.g., "app-works-group"
-            if group_key not in group_data:
-                group_data[group_key] = []
+#         for handle, tag_name in groups_found.items():
+#             group_key = tag_name  # e.g., "app-works-group"
+#             if group_key not in group_data:
+#                 group_data[group_key] = []
 
-            def get_next_button():
-                btn = handle.query_selector('button.mat-paginator-navigation-next[aria-label="Next page"]')
-                if btn:
-                    # check if disabled
-                    if btn.is_disabled() or "mat-button-disabled" in (btn.get_attribute("class") or ""):
-                        return None
-                return btn
+#             def get_next_button():
+#                 btn = handle.query_selector('button.mat-paginator-navigation-next[aria-label="Next page"]')
+#                 if btn:
+#                     # check if disabled
+#                     if btn.is_disabled() or "mat-button-disabled" in (btn.get_attribute("class") or ""):
+#                         return None
+#                 return btn
 
-            # We do a loop to parse content, then try next button, until not found or disabled.
-            page_count = 0
-            max_pages = 20  # safeguard
-            while page_count < max_pages:
-                content_batch = parse_group_content(handle, group_key)
-                if content_batch:
-                    group_data[group_key].extend(content_batch)
+#             # We do a loop to parse content, then try next button, until not found or disabled.
+#             page_count = 0
+#             max_pages = 20  # safeguard
+#             while page_count < max_pages:
+#                 content_batch = parse_group_content(handle, group_key)
+#                 if content_batch:
+#                     group_data[group_key].extend(content_batch)
 
-                next_btn = get_next_button()
-                if not next_btn:
-                    break  # no more pagination
+#                 next_btn = get_next_button()
+#                 if not next_btn:
+#                     break  # no more pagination
 
-                # click next
-                next_btn.click()
-                page.wait_for_timeout(1500)
-                page_count += 1
+#                 # click next
+#                 next_btn.click()
+#                 page.wait_for_timeout(1500)
+#                 page_count += 1
 
-            # After we've exhausted pagination for this group, we move on.
+#             # After we've exhausted pagination for this group, we move on.
 
-        browser.close()
+#         browser.close()
 
-    return group_data
-
-
-def fetch_orcid_profile(base_url):
-    """
-    Given an ORCID ID, attempt to fetch and parse its public profile pages.
-    Because ORCID can paginate or load content dynamically, this function will
-    try to find any links labeled as a 'next page' or that imply pagination,
-    and follow them until no more pages are found.
-
-    :return: A list of HTML strings, one per page fetched
-    """
-    current_url = base_url
-
-    visited_urls = set()
-    html_pages = []
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        current_url = base_url
-
-        while True:
-            if current_url in visited_urls:
-                break
-            visited_urls.add(current_url)
-
-            page.goto(current_url)
-            page.wait_for_timeout(1500)
-
-            rendered_html = page.content()
-            html_pages.append(rendered_html)
-
-            # Attempt to find links for pagination (if ORCID provides them)
-            # This is a rough example; you may need to adapt it to ORCID's structure.
-            anchor_tags = page.query_selector_all("a")
-            next_link = None
-            for a in anchor_tags:
-                href = a.get_attribute("href") or ""
-                text = (a.inner_text() or "").lower()
-                if "next" in text or re.search(r"page=\d+", href):
-                    if not href.startswith("http"):
-                        href = f"https://orcid.org{href}"
-                    next_link = href
-                    break
-
-            if not next_link:
-                break
-
-            current_url = next_link
-
-        browser.close()
-
-    return html_pages
+#     return group_data
 
 
-def parse_orcid_pages(html_pages):
-    """
-    Given a list of (already rendered) ORCID page HTML strings, this function attempts to
-    extract the following sections:
-      - biography
-      - activities (employment, education, etc.)
-      - works
+# def fetch_orcid_profile(base_url):
+#     """
+#     Given an ORCID ID, attempt to fetch and parse its public profile pages.
+#     Because ORCID can paginate or load content dynamically, this function will
+#     try to find any links labeled as a 'next page' or that imply pagination,
+#     and follow them until no more pages are found.
 
-    A common issue is that 'Works' may be split across multiple pages, so we handle each
-    page separately and merge the works from each page.
+#     :return: A list of HTML strings, one per page fetched
+#     """
+#     current_url = base_url
 
-    NOTE:
-      1) ORCID's structure or headings may change over time, making text-based parsing
-         brittle. If so, adjust or use ORCID's official APIs.
-      2) This is a demonstration of how to capture repeated headings (e.g., multiple
-         "Works" sections). We do minimal text-based extraction. A more robust approach
-         or dedicated schema-based parsing might be needed for production.
+#     visited_urls = set()
+#     html_pages = []
 
-    :param html_pages: A list of HTML strings (one per page).
-    :return: A dict with keys:
-        {
-          "biography": "...",
-          "activities": {...},
-          "works": ["Works from page1...", "Works from page2...", ...],
-          "raw_text": [full_text_page1, full_text_page2, ...]
-        }
-    """
-    data = {
-        "biography": "",
-        "activities": {},
-        "works": [],
-        "raw_text": []
-    }
+#     with sync_playwright() as p:
+#         browser = p.chromium.launch(headless=True)
+#         page = browser.new_page()
+#         current_url = base_url
 
-    # We'll parse each page separately rather than lump everything into one giant string.
-    # This way, if the second page has a new "Works" heading, we can capture it separately.
-    all_page_text = []
+#         while True:
+#             if current_url in visited_urls:
+#                 break
+#             visited_urls.add(current_url)
 
-    for html_content in html_pages:
-        soup = BeautifulSoup(html_content, "html.parser")
-        text_content = soup.get_text(separator=' ')
-        data["raw_text"].append(text_content)
-        all_page_text.append(text_content)
+#             page.goto(current_url)
+#             page.wait_for_timeout(1500)
 
-    # We define small helper functions for extracting text between headings.
-    def extract_between(text_block, start, ends):
-        """
-        Returns the text after `start` until the first occurrence of any string in `ends` or EOF.
-        If `start` is not found, returns empty string.
-        """
-        start_escaped = re.escape(start)
-        end_pattern = "|".join(re.escape(e) for e in ends)
-        # Use a regex with a named group so we can read it easily.
-        pattern = rf"(?s){start_escaped}(?P<capture>.*?)(?={end_pattern}|$)"
-        match = re.search(pattern, text_block, flags=re.IGNORECASE)
-        if match:
-            return match.group("capture").strip()
-        return ""
+#             rendered_html = page.content()
+#             html_pages.append(rendered_html)
 
-    # We'll only parse "Biography" and "Activities" from the first page that actually has them,
-    # since typically the second page won't repeat biography or top-level sections. If you prefer
-    # merging or splitting them, adapt the logic.
-    # We'll do a simple approach: try to parse biography/activities from each page in order, but
-    # only store if we haven't already found it.
+#             # Attempt to find links for pagination (if ORCID provides them)
+#             # This is a rough example; you may need to adapt it to ORCID's structure.
+#             anchor_tags = page.query_selector_all("a")
+#             next_link = None
+#             for a in anchor_tags:
+#                 href = a.get_attribute("href") or ""
+#                 text = (a.inner_text() or "").lower()
+#                 if "next" in text or re.search(r"page=\d+", href):
+#                     if not href.startswith("http"):
+#                         href = f"https://orcid.org{href}"
+#                     next_link = href
+#                     break
 
-    have_biography = False
-    have_activities = False
+#             if not next_link:
+#                 break
 
-    for page_text in all_page_text:
-        # If we already got a biography, skip
-        if not have_biography:
-            biography = extract_between(
-                page_text,
-                start="Biography",
-                ends=["Activities", "Works", "Professional activities", "Peer review", "Education and qualifications"]
-            )
-            if biography:
-                data["biography"] = biography
-                have_biography = True
+#             current_url = next_link
 
-        # If we already got activities, skip
-        if not have_activities:
-            activities_block = extract_between(
-                page_text,
-                start="Activities",
-                ends=["Works", "Peer review", "Biography", "Professional activities"]
-            )
-            if activities_block:
-                # parse sub-sections in that block
-                sub_sections = ["Employment", "Education and qualifications", "Professional activities"]
-                for s in sub_sections:
-                    sub_text = extract_between(
-                        activities_block,
-                        start=s,
-                        ends=sub_sections + ["Works", "Peer review", "Collapse all", "Sort", "Show more detail"]
-                    )
-                    if sub_text:
-                        data["activities"][s] = sub_text
-                have_activities = True
+#         browser.close()
 
-    # Parse "Works" from each page, because the user discovered more items on page 2
-    # We'll store them as a list of strings, or you could merge them into one big chunk.
-    for page_text in all_page_text:
-        # We might have multiple references to "Works" within one page if it has sub-chunks.
-        # So let's find ALL occurrences of "Works" inside that page.
-        # We'll define an all-matches pattern that captures repeated sections.
+#     return html_pages
 
-        # We'll treat "Works" as a heading, and "Peer review" or "Biography" or "Activities"
-        # or "Page X of Y" as potential end headings. Add or remove from ends as needed.
-        # We'll do a finditer loop to capture all matches in the page text.
-        works_pattern = re.compile(
-            r"(?is)Works(?P<content>.*?)(?=Peer review|Biography|Activities|Page \d+ of \d|$)"
-        )
-        matches = works_pattern.finditer(page_text)
-        for m in matches:
-            found_text = m.group("content").strip()
-            if found_text:
-                data["works"].append(found_text)
 
-    return data
+# def parse_orcid_pages(html_pages):
+#     """
+#     Given a list of (already rendered) ORCID page HTML strings, this function attempts to
+#     extract the following sections:
+#       - biography
+#       - activities (employment, education, etc.)
+#       - works
+
+#     A common issue is that 'Works' may be split across multiple pages, so we handle each
+#     page separately and merge the works from each page.
+
+#     NOTE:
+#       1) ORCID's structure or headings may change over time, making text-based parsing
+#          brittle. If so, adjust or use ORCID's official APIs.
+#       2) This is a demonstration of how to capture repeated headings (e.g., multiple
+#          "Works" sections). We do minimal text-based extraction. A more robust approach
+#          or dedicated schema-based parsing might be needed for production.
+
+#     :param html_pages: A list of HTML strings (one per page).
+#     :return: A dict with keys:
+#         {
+#           "biography": "...",
+#           "activities": {...},
+#           "works": ["Works from page1...", "Works from page2...", ...],
+#           "raw_text": [full_text_page1, full_text_page2, ...]
+#         }
+#     """
+#     data = {
+#         "biography": "",
+#         "activities": {},
+#         "works": [],
+#         "raw_text": []
+#     }
+
+#     # We'll parse each page separately rather than lump everything into one giant string.
+#     # This way, if the second page has a new "Works" heading, we can capture it separately.
+#     all_page_text = []
+
+#     for html_content in html_pages:
+#         soup = BeautifulSoup(html_content, "html.parser")
+#         text_content = soup.get_text(separator=' ')
+#         data["raw_text"].append(text_content)
+#         all_page_text.append(text_content)
+
+#     # We define small helper functions for extracting text between headings.
+#     def extract_between(text_block, start, ends):
+#         """
+#         Returns the text after `start` until the first occurrence of any string in `ends` or EOF.
+#         If `start` is not found, returns empty string.
+#         """
+#         start_escaped = re.escape(start)
+#         end_pattern = "|".join(re.escape(e) for e in ends)
+#         # Use a regex with a named group so we can read it easily.
+#         pattern = rf"(?s){start_escaped}(?P<capture>.*?)(?={end_pattern}|$)"
+#         match = re.search(pattern, text_block, flags=re.IGNORECASE)
+#         if match:
+#             return match.group("capture").strip()
+#         return ""
+
+#     # We'll only parse "Biography" and "Activities" from the first page that actually has them,
+#     # since typically the second page won't repeat biography or top-level sections. If you prefer
+#     # merging or splitting them, adapt the logic.
+#     # We'll do a simple approach: try to parse biography/activities from each page in order, but
+#     # only store if we haven't already found it.
+
+#     have_biography = False
+#     have_activities = False
+
+#     for page_text in all_page_text:
+#         # If we already got a biography, skip
+#         if not have_biography:
+#             biography = extract_between(
+#                 page_text,
+#                 start="Biography",
+#                 ends=["Activities", "Works", "Professional activities", "Peer review", "Education and qualifications"]
+#             )
+#             if biography:
+#                 data["biography"] = biography
+#                 have_biography = True
+
+#         # If we already got activities, skip
+#         if not have_activities:
+#             activities_block = extract_between(
+#                 page_text,
+#                 start="Activities",
+#                 ends=["Works", "Peer review", "Biography", "Professional activities"]
+#             )
+#             if activities_block:
+#                 # parse sub-sections in that block
+#                 sub_sections = ["Employment", "Education and qualifications", "Professional activities"]
+#                 for s in sub_sections:
+#                     sub_text = extract_between(
+#                         activities_block,
+#                         start=s,
+#                         ends=sub_sections + ["Works", "Peer review", "Collapse all", "Sort", "Show more detail"]
+#                     )
+#                     if sub_text:
+#                         data["activities"][s] = sub_text
+#                 have_activities = True
+
+#     # Parse "Works" from each page, because the user discovered more items on page 2
+#     # We'll store them as a list of strings, or you could merge them into one big chunk.
+#     for page_text in all_page_text:
+#         # We might have multiple references to "Works" within one page if it has sub-chunks.
+#         # So let's find ALL occurrences of "Works" inside that page.
+#         # We'll define an all-matches pattern that captures repeated sections.
+
+#         # We'll treat "Works" as a heading, and "Peer review" or "Biography" or "Activities"
+#         # or "Page X of Y" as potential end headings. Add or remove from ends as needed.
+#         # We'll do a finditer loop to capture all matches in the page text.
+#         works_pattern = re.compile(
+#             r"(?is)Works(?P<content>.*?)(?=Peer review|Biography|Activities|Page \d+ of \d|$)"
+#         )
+#         matches = works_pattern.finditer(page_text)
+#         for m in matches:
+#             found_text = m.group("content").strip()
+#             if found_text:
+#                 data["works"].append(found_text)
+
+#     return data
 
 
 def main():

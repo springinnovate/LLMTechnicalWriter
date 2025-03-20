@@ -468,6 +468,7 @@ def analysis_with_dependencies(
     """
 
     all_answers = {}
+    context = {}
     developer_prompt = global_config.get('developer_prompt', '')
 
     # 1) Build the dependency graph
@@ -502,6 +503,11 @@ def analysis_with_dependencies(
             formatted_assistant = assistant_t.format(**combined_dict)
 
             prompt_dict = {
+                'developer': combined_developer,
+                'user': formatted_user,
+                'assistant': formatted_assistant
+            }
+            context[q] = {
                 'developer': combined_developer,
                 'user': formatted_user,
                 'assistant': formatted_assistant
@@ -548,7 +554,7 @@ def analysis_with_dependencies(
             LOGGER.error(f"Dependency error: Could not compute {q} due to circular reference or missing data.")
             all_answers[q] = "ERROR: Circular dependency or missing data"
 
-    return all_answers
+    return all_answers, context
 
 
 def generate_output(output_config, answers):
@@ -588,7 +594,7 @@ def run_full_pipeline(config_path, model):
     # 3) Analysis stage
     analysis_config = config.get('analysis', {})
     LOGGER.info('analysis stage')
-    answers = analysis(openai_context, analysis_config, preprocessed_data, global_config, model)
+    answers, context = analysis_with_dependencies(openai_context, analysis_config, preprocessed_data, global_config, model, 8)
 
     basename = os.path.splitext(os.path.basename(config_path))[0]
 
@@ -596,6 +602,7 @@ def run_full_pipeline(config_path, model):
     with open(intermediate_stage_path, 'w', encoding='utf-8') as intermediate_file:
         intermediate_file.write(json.dumps({'preprocessed_data': preprocessed_data}, indent=2))
         intermediate_file.write(json.dumps({'answers': answers}, indent=2))
+        intermediate_file.write(json.dumps({'context': context}, indent=2))
 
     final_data = {**preprocessed_data, **answers}
 

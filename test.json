@@ -11,14 +11,14 @@
       "assistant_template": "test string"
     },
     "methods_section": {
-      "developer": "Describe a suitable methodological approach or design for the proposal.",
-      "user_template": "Propose a methodology for studying when and how pest outbreaks become significant.",
+      "developer": "blank to see if it worked",
+      "user_template": "only write about what is in the assistant",
       "assistant_template": "test string {question_predict_high_pest_impacts}"
     },
     "discussion_section": {
-      "developer": "Combine the intro and methodology, highlighting any gaps or open questions.",
-      "user_template": "Write a discussion section referencing previous results. Indicate uncertainties if data is lacking.",
-      "assistant_template": "test string {question_predict_high_pest_impacts} {methods_section}"
+      "developer": "blank to see if it worked",
+      "user_template": "only write about what is in the assistant",
+      "assistant_template": "test string {question_predict_high_pest_impacts} and {methods_section}"
     }
   },
   "output": [

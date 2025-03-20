@@ -290,10 +290,9 @@ def read_file_content(file_path):
     return file_content
 
 
-def preprocess_input(openai_context, preprocessing_config, model):
+def preprocess_input(openai_context, preprocessing_config, developer_prompt, model):
     tasks = []
     results_dict = {}
-
     # pre read all the files so we can pass them to the API in parallel
     for section_name, section_info in preprocessing_config.items():
         description = section_info.get('description', '')
@@ -303,7 +302,10 @@ def preprocess_input(openai_context, preprocessing_config, model):
         expanded_file_items = []
 
         for file_item in files:
-            prompt_text = file_item['prompt']
+            prompt_text = ''
+            if developer_prompt != '':
+                prompt_text += 'Global prompt context: {developer_prompt}. '
+            prompt_text += file_item['prompt']
             for matched_path in glob.glob(file_item['file_path']):
                 expanded_file_items.append({
                     'file_path': matched_path,
@@ -432,7 +434,10 @@ def run_full_pipeline(config_path, model):
     global_config = config.get('global')
     openai_context = create_openai_context()
     LOGGER.info('preprocess data')
-    preprocessed_data = preprocess_input(openai_context, preprocessing_config, model)
+    developer_prompt = global_config.get('developer_prompt', '')
+
+    preprocessed_data = preprocess_input(
+        openai_context, preprocessing_config, developer_prompt, model)
 
     # 3) Analysis stage
     analysis_config = config.get('analysis', {})

@@ -1,0 +1,38 @@
+{
+  "global": {
+    "developer_prompt": "You are an expert reviewer for an entomology research paper."
+  },
+  "preprocessing": {
+  },
+  "analysis": {
+    "question_predict_high_pest_impacts": {
+      "developer": "Analyze the summarized content to propose ideas about how we predict when pests reach high-impact levels.",
+      "user_template": "Please create a short introduction called 'Predicting Pest Impacts Based on Historical Data'.",
+      "assistant_template": "test string"
+    },
+    "methods_section": {
+      "developer": "Describe a suitable methodological approach or design for the proposal.",
+      "user_template": "Propose a methodology for studying when and how pest outbreaks become significant.",
+      "assistant_template": "test string {question_predict_high_pest_impacts}"
+    },
+    "discussion_section": {
+      "developer": "Combine the intro and methodology, highlighting any gaps or open questions.",
+      "user_template": "Write a discussion section referencing previous results. Indicate uncertainties if data is lacking.",
+      "assistant_template": "test string {question_predict_high_pest_impacts} {methods_section}"
+    }
+  },
+  "output": [
+    {
+      "title": "Introduction to Pest Impact Prediction",
+      "text_template": "=== Introduction ===\n\n{question_predict_high_pest_impacts}"
+    },
+    {
+      "title": "Proposed Methods",
+      "text_template": "=== Methods ===\n\n{methods_section}"
+    },
+    {
+      "title": "Discussion of Results",
+      "text_template": "=== Discussion ===\n\n{discussion_section}"
+    }
+  ]
+}

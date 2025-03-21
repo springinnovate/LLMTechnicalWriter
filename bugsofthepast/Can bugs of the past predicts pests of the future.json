@@ -14,42 +14,125 @@
         }
     },
     "analysis": {
-        "project_summary": {
-            "developer": "The Project Summary must contain a summary of the proposed activity suitable for dissemination to the public. It should be a self-contained description of the project and should contain a statement of objectives and methods to be employed. It should be informative to other persons working in the same or related fields, and, insofar as possible, understandable to a scientifically or technically literate lay reader. The Project Summary must not include any proprietary/confidential information",
-            "user_template": "Write no more than one page of text for the project summary",
-            "assistant_template": "This is the project narrative to base the summary off of {project_summary}"
-        },
-        "project_narrative": {
-            "developer": "Simplified NSF Proposal Instructions\n\nProject Description \u2013 Core Content\n\nClearly state the project\u2019s objectives, significance, and relationship to current knowledge and ongoing research.\nOutline the general plan of work, including the rationale, methods, and procedures.\nExplain what will be done, why it is important, how success will be measured, and potential benefits if successful.\nIntegrate both technical aspects of the research and broader contributions (e.g., educational, societal).\nBroader Impacts (Separate Section)\n\nProvide a distinct heading titled \u2018Broader Impacts.\u2019\nDiscuss how the project\u2019s activities will contribute to broader goals such as inclusivity in STEM, improved education, public engagement, workforce development, partnerships, and other societally relevant outcomes.\nData Management and Sharing\n\nIn the Special Information/Supplementary Documentation section, describe plans for data preservation, documentation, and sharing of research products.\nInternational/Foreign Organization Involvement\n\nIf the proposal includes funding for an international institution or collaborator, explain and justify that partnership in the Project Description.\nPage Limitations\n\nThe Project Description (including up to five pages for Results from Prior NSF Support) must not exceed 15 pages in total.\nURLs should not be included, as the document must be self-contained and meet the page limit requirements.\nResults from Prior NSF Support (If Applicable)\n\nProvide information on relevant NSF awards from the past five years or current support.\nInclude: Award number, amount/period of support, project title, outcomes (with separate Intellectual Merit and Broader Impacts subheadings), publications, and relation of completed work to the new proposal.\nUse up to five pages for this section if needed.\nUnfunded Collaborations\n\nIf the proposal involves significant collaboration with individuals not in the budget, describe the collaboration in the Facilities/Equipment/Other Resources section.\nProvide letters of collaboration in the supplementary documentation.\nGroup Proposals\n\nInterdisciplinary group proposals must still adhere to the 15-page limit unless a deviation is approved in advance.\nProposals for Renewed Support\n\nFollow the guidelines for renewal proposals, describing how previous work connects to the new proposed research.",
-            "user_template": "Write the project narrative with the guidelines provided and the context provided. If there are sections that are required but you do not have the information for it, create that section but leave an note in all caps to the authors that there is not enough information to fill it out. Address within this section how the project meets all three Specific Requirements listed in the Program Description of this solicitation. Text addressing these Specific Requirements should be provided in the Project Description section of the proposal and should be organized under individual subheadings for each of the three requirements listed (i.e., Geosciences Advancement, AI Advancement, and Partnerships). If you do not have sufficient information to write any of these sections leave a placeholder and prompt the authors to fill it in in post. Be sure to reference nearly everything you can in the proposed outline when writing this section. If there is information in the outline you cannot use, create a section called 'unused outline info' and state what it is and why you couldn't use it",
-            "assistant_template": "Here is the proposed outline so far: Proposals will also be evaluated on how successfully they meet the Specific Requirements of the Program Description for this solicitation (Section II):\nGeosciences Advancement: How do the proposed activities contribute to advancing geosciences research and/or education in response to motivating science drivers?\nNovel use of earth observation data to interdisciplinary questions covering agricultural insect pest ecology and evolutionary biology, agricultural success in the future, and the impacts of global change on these systems\nAI Impact: What novel integration of AI is proposed, and does it overcome significant methodological and/or capacity bottlenecks that inhibit research progress in the geosciences?\nConvolutional neural nets, KGML, PRITHVI\nPartnerships: Does the proposal include mechanisms to develop meaningful interdisciplinary partnerships to support the intended Geosciences Advancement and AI Impact? Will partnerships benefit all project participants, including pathways for cross-training students and other researchers in the methods to be pursued?\nFunding for 2 postdocs, fundings for 2 early career researchers, new partnerships across disciplines, advancement of career goals for all partnerships\nInitial project plan\nBackground: \nUnderstanding how we can \u2018naturally\u2019 control agricultural pests is a key sustainability question in food production systems. Many concentrated studies have found evidence that preservation of natural areas and natural resources should conserve and support biological control agents, such as birds and insect predators (Emery et al. 2024; Bowler et al. 2019; Martin et al. 2019; Rollan et al. 2019; Frischkoff et al. 2014). However, these questions typically produce much more complicated results when broadened across pests, plants and the globe: for example, field size, edge density, phenology and species\u2019 traits have produced much more complex stories (Tscharntke et al. 2016; Karp et al. 2018; Tamburini et al. 2020; Alexandridis et al. 2021). Therefore, at a global scale, previous studies have found few, if any, patterns that broadly predict whether agricultural pests would be successful. \nWith leaps in remote-sensing data products that observe and describe variation in landscapes and climate across the world, we have renewed power to interrogate previous studies which found complex results. Additionally, over the past several years, agricultural studies, insect trait, phenological information, phylogenies of insects and plant trait databases have been published (Fernandez et al. 2021; Radeloff et al. 2019; Tamburini et al. 2020). By combining multiple data types, including climate data, pest trait data, and landscape data at a high resolution, we are interested in understanding whether there are any take-home messages in this story, to help illuminate when biological control of pests will be effective. \nGiven the massive potential power of biological and remote sensing data distributed globally, we will apply an AI intensive approach to the question of agricultural pests: which aspects of the environment and traits of the pests are most important to predicting global prevalence of dominant agricultural pests? \nUnderstanding whether there are shared dynamics in agricultural areas globally, will help practitioners better understand what aspects may be most important to control or mitigate to further biological control in their own area. However, given that different farms operate in vastly different ecosystems with contrasts in landscape, climate and communities, there may be regional best predictors of pests. Therefore, we also intend to find the most important predictors of variation in outbreaks shared within and across regions of the globe. Combining a global and regional scale approach will better illuminate why there is so much variation in the success of biological control of agricultural pests across contexts.\nNotably, this study will introduce several inherently temporal contexts of these dynamics. Understanding the stability or stochasticity of the environment over time, and comparing those measures across many different farms, studies and global locations, may help us understand the deeper context to agricultural pests. For example, locations throughout the globe have experienced varying degrees of stochasticity in their climate, and climate change itself with rising temperatures, changing weather phenology, increasing numbers of extreme events or changing precipitation patterns over the past century. Comparing sites through this lens will illuminate the importance not only of the climate that animal and plant players experienced directly, but their populations at a broader timescale. \nThese agricultural landscapes and their communities have also changed considerably at various locations, and may have also experienced changes in agricultural intensity, practice and landscape heterogeneity over a similar time period, while other areas have not. By introducing not only climate normal and anomaly data, but also landscape normals and anomalies, we intend to better represent the historical and evolutionary background of a given system. The history of the landscape and greater environment may have a bigger story to tell, and also help us predict where biocontrol of insect pests may work better, given both a spatial and temporal (eco-evolutionary) lens. This lens will add to both the global and regional understanding of how biological control impacts pests. \nGiven that the history of the landscape may have historical significance in understanding and predicting pest pressure, it is also key to understand how the relationships between pest species and their evolutionary history may predict their prevalence and connect with the traits that allow pests to be successful in a given crop in a given place at a given time. \nBy investigating first which predictors of variation in pest success are most relevant at meso and global scales, we will harness this database\u2019s ability to understand \u2018what matters\u2019. We then will follow up on a deeper investigation of why these predictors matter, incorporating temporal data, to understand where, why and how risks to agriculture globally vary. \nQuestion: How does variation in climate, pest evolutionary ecology and landscapes help predict when are most prevalent across the globe using AI-driven methods?\nData: \nDatabase of many short field studies (experimental and observational) with pest pressure on a variety of agricultural products throughout the world. \nParameters of Question\nVariation in climate\nLevel of stochasticity, variation in stochasticity\nChange in climate, heteroscedasticity\nBiome/Ecotype/Lat.Lon.\nVariation in landscape\nAmount contiguous agriculture\nHeterogeneity\nChange in composition over space\nChange in composition over time\nDiversity\nProductivity/Health\nVariation in pests and their communities\nPest identity and traits\nPredator identity and traits\nPlant identity\nPest phylogeny and relationships\nData-linked Questions\nDatabase-wide derived measures of pest responses to environmental variation\nDerive most important variables to predict suppression: What variation in the environment is important to predicting variation in pest suppression?\nRun a decision tree method to understand which environmental variables are most predictive of successful biological control of pests and of low pest abundance. \nBroken down into regions and also run globally\nExplain how variation in the environment affects pest suppression: How does variation in the environment predict whether pest suppression, and more specifically biological control of pests, is successful?\nRegression analysis testing if in areas where the landscape and climate has been more stable, if biological control of pests has been more successful. \nMore specifically, is biocontrol of native pests more successful in stable areas than stochastic areas?\nIs biocontrol of low dispersing pests more successful in stable areas than stochastic areas? \nIs biocontrol of generalist pests more successful in stable areas than biocontrol of specialist pests in stable areas, particularly when compared to stochastic equivalents?\nMethods Summary:\nWhat environmental variants and pest traits predict better biological control?\nRF/PCA/PLS/NMDS\nComparison: What are the globally shared predictors of biological control across the globe?\nProduct: Concluded best environmental and trait predictors of pest suppression and biological control, and in what way they predict these outcomes. \nWhich predictors are more important in which areas, and which ones are consistently important, at a meso-scale and a global scale. \nHow do we expect the success of biological control to vary across the environment?\nGLMM\nProduct: How environmental stability relates to the success of biological control across the globe given the differences in pest communities. \nCommunities vary in the level of land use change and experiences of climate change, in addition to differences in human and natural community make up, but in what way?\n\u2234 Given [changing and variable climates], [changing and variable landscapes], and [diversity of plant-insect interactions], we have varied outcomes of biological pest control in agricultural landscapes. \n\n\nProject Outline\nQuestion: can data on the bugs of the past predict the pests of the future?\nCan we predict when pests have significant impacts- e.g. high abundance, having significant crop impacts, or not being kept in check by natural enemies.\nMust focus on leps because of phylogenetic data issues, but this isn\u2019t necessarily a huge minus\nLeps are charismatic for conservation BI\nLeps contribute to some of the worst pest pressure (e.g., corn borer) for application/econ BI\nPhase 1: Data aggregation\nData inputs:\nDatabase of pest observations in the field, other community members (including predators), crop info, and landscape info \nCommunity science data for presence/absence\nIn-progress trait dataset- dispersal, diet breadth, habitat breadth, body size, invasiveness status, thermal traits, etc.\nEarth observation data- climate, land cover, texture, etc.\nPhylogeny of pests \nUse of AI to fill gaps when appropriate\nNLP to fill in trait database\nML to fill in observations x EO predictors\nAI to help fill in phylogeny mbarkdull@nhm.org?\nCreation and filling out of phylogenies (focus on moths)\nWould probably pilot in one or a few taxa with a well-resolved phylogeny, like Lepidoptera\n92% of butterfly genera\n186 butterflies and moths, could be the starting point for a grafting approach\nPhase 2: Test/ask how everything we know explains pest abundances now/or trends in the past using typical methods\nFrequentist: \npest abundance ~ field info + traits * phylo + climate + lulc + (1|space + 1|study, etc.)\n\u0394 pest ~ field info + traits * phylo + climate + lulc + time + (1|space + 1|study, etc.)\n\u0394 pest ~ field info + traits * phylo + climate + lulc + space + (1|study, etc.)\nAI/ML approaches:\nTraditional ML: (Convolutional) Neural Nets, Support Vector Machines/Support Vector Regression to learn the spatial and temporal patterns\nKnowledge guided machine learning (KGML) or similar approaches to improve accuracy and interpretability of results. \nPossibly spatial transformers or foundational spatial models (e.g., PRITHVI)\nPhase 3: Ask how we think pest pressure will change or be greatest in the future given what we have gathered in phase 1 and learned from phase 2\nHarness \u201cthe machine\u201d\nCould compare against more typical statistical models (CRM uses frequentist, I believe MEB uses bayesian) \nNovel AI methods to iteratively train and predict how past info predicts the future of pest pressure given context we have already supplied\nCompare to KGML, compare fits of frequentist/traditional methods to ML methods\nLeverage time-series and spatial coverage to conduct cross-validation, improving out-of-sample performance and ability to assess future pressures\n\nDisciplinary team members we need\nDefinitely needed\nEvolutionary biology and bioinformatician: Megan Barkdull\nGlobal ecologist & data scientist: Colleen Miller\nGeoscience/EO expert and ecologist: Becky Chaplin-Kramer\nAI and software development support: Rich Sharp, Justin Johnson\nMaybe needed\nMAYBE: Maybe also an extension expert? Probably still an entomologist/plant science/biologist: Matthew Gullickson\nMAYBE: [Outreach with growers: Tara Conway] - social science would get it out of scope though\nMAYBE: [Impacts on economic valuations of land/crops: Marta Sylla, William Sidemo Holm, or someone else] - if needed for BI\n\nFunctional team members\nPI: Colleen Miller, UMN, Global ecologist & data scientist\nhttps://scholar.google.com/citations?user=CFKlenEAAAAJ&hl=en&authuser=1\nCo-PI: Megan Barkdull, LA NHM, Evolutionary biologist, entomologist and bioinformatician\nhttps://scholar.google.com/citations?hl=en&authuser=1&user=KamfKxsAAAAJ\nCo-PI?: Becky CK at 5%, WWF, Geoscience and earth observations expert and ecologist\nhttps://scholar.google.com/citations?hl=en&authuser=1&user=1PSebLgAAAAJ\nAI expert: Rich Sharp, WWF/Spring, Software developer and programmer\nhttps://scholar.google.com/citations?hl=en&authuser=1&user=yPREfmsAAAAJ\nAI expert: Justin Johnson, UMN at 5%, Environmental economist, earth-economy modeller and programmer\nhttps://scholar.google.com/citations?hl=en&authuser=1&user=tgB-2DsAAAAJ\nPostdoc 1: TBD, biology/data science (e.g., Mia Lippey)\nPostdoc 2: TBD, geography/heavy coding/AI (TBA)\n this is relevant prior work that should be referenced: {relevant_papers}"
-        },
+      "project_summary": {
+        "developer": "The Project Summary must contain a summary of the proposed activity suitable for dissemination to the public. It should be a self-contained description of the project and should contain a statement of objectives and methods to be employed. It should be informative to other persons working in the same or related fields, and, insofar as possible, understandable to a scientifically or technically literate lay reader. The Project Summary must not include any proprietary/confidential information",
+        "user_template": "Write no more than one page of text for the project summary",
+        "assistant_template": "This summary should be based on {project_narrative_context}"
+      },
+      "project_narrative_core_content": {
+        "developer": "Project Description – Core Content\n\nClearly state the project’s objectives, significance, and relationship to current knowledge and ongoing research. Outline the general plan of work, including the rationale, methods, and procedures. Explain what will be done, why it is important, how success will be measured, and potential benefits if successful. Integrate both technical aspects of the research and broader contributions (e.g., educational, societal).",
+        "user_template": "Write this section referencing {project_narrative_context}, following the instructions in {project_narrative_core_content.developer}. If you are missing any information, insert a placeholder in ALL CAPS for the authors to fill in later. Ensure you incorporate the required subheadings for the three Specific Requirements (Geosciences Advancement, AI Advancement, Partnerships).",
+        "assistant_template": "Use {project_narrative_context} to provide a cohesive narrative; if any required info is not in {project_narrative_context}, prompt the authors for it."
+      },
+      "project_narrative_broader_impacts": {
+        "developer": "Broader Impacts\n\nProvide a distinct heading titled ‘Broader Impacts.’ Discuss how the project’s activities will contribute to broader goals such as inclusivity in STEM, improved education, public engagement, workforce development, partnerships, and other societally relevant outcomes.",
+        "user_template": "Write this section referencing {project_narrative_context} and following {project_narrative_broader_impacts.developer}. If insufficient information is available, create placeholders. Include any relevant details about inclusivity, education, and outreach.",
+        "assistant_template": "Refer back to the background in {project_narrative_context} to illustrate how broader impacts are integrated. For missing details, leave placeholders in ALL CAPS."
+      },
+      "project_narrative_data_management": {
+        "developer": "Data Management and Sharing\n\nIn the Special Information/Supplementary Documentation section, describe plans for data preservation, documentation, and sharing of research products.",
+        "user_template": "Explain the data management plan. If no data-sharing strategy is detailed in {project_narrative_context}, leave a placeholder.",
+        "assistant_template": "Reference relevant data sources mentioned in {project_narrative_context} and show how you plan to manage them. If details are missing, prompt the authors."
+      },
+      "project_narrative_international_involvement": {
+        "developer": "International/Foreign Organization Involvement\n\nIf the proposal includes funding for an international institution or collaborator, explain and justify that partnership in the Project Description.",
+        "user_template": "If there is any international component indicated in {project_narrative_context}, detail it here. Otherwise, leave a note that none is currently planned.",
+        "assistant_template": "Mention any cross-border collaborations found in {project_narrative_context}. If not applicable, insert a placeholder indicating no international collaborations."
+      },
+      "project_narrative_page_limitations": {
+        "developer": "Page Limitations\n\nThe Project Description (including up to five pages for Results from Prior NSF Support) must not exceed 15 pages in total. URLs should not be included.",
+        "user_template": "Remind authors of the 15-page limit. If any part of the narrative seems too long, prompt them to shorten or move details to appendices if allowed.",
+        "assistant_template": "Incorporate a note on how to keep the text concise while referencing all critical components from {project_narrative_context}."
+      },
+      "project_narrative_prior_support": {
+        "developer": "Results from Prior NSF Support (If Applicable)\n\nProvide information on relevant NSF awards from the past five years or current support. Include: Award number, amount/period of support, project title, outcomes (with separate Intellectual Merit and Broader Impacts subheadings), publications, and relation of completed work to the new proposal. Use up to five pages for this section if needed.",
+        "user_template": "If you have prior NSF support details in {project_narrative_context}, summarize them here. If not, use a placeholder.",
+        "assistant_template": "Include any known NSF awards from {project_narrative_context}, otherwise leave placeholders in ALL CAPS for authors."
+      },
+      "project_narrative_unfunded_collaborations": {
+        "developer": "Unfunded Collaborations\n\nIf the proposal involves significant collaboration with individuals not in the budget, describe the collaboration in the Facilities/Equipment/Other Resources section. Provide letters of collaboration in supplementary documentation.",
+        "user_template": "List all known collaborations from {project_narrative_context} not directly in the budget. If missing, prompt the authors.",
+        "assistant_template": "If any key partnership from {project_narrative_context} is not budgeted, detail it here. Otherwise, insert placeholders."
+      },
+      "project_narrative_group_proposals": {
+        "developer": "Group Proposals\n\nInterdisciplinary group proposals must adhere to the 15-page limit unless a deviation is approved in advance.",
+        "user_template": "If this is a group proposal, make sure to note the interdisciplinary nature and mention the page limit constraints. If not applicable, leave a placeholder.",
+        "assistant_template": "Reference the team composition in {project_narrative_context} if this is interdisciplinary. Otherwise, insert placeholder."
+      },
+      "project_narrative_renewed_support": {
+        "developer": "Proposals for Renewed Support\n\nFollow the guidelines for renewal proposals, describing how previous work connects to the new proposed research.",
+        "user_template": "If this proposal renews previous NSF-funded work, summarize that connection. If not applicable, leave a placeholder.",
+        "assistant_template": "Include how the project builds on previous work mentioned in {project_narrative_context}. If not applicable, note that here."
+      },
+      "project_narrative_instructions": {
+        "developer": "Use these references to fill in each section of the narrative. If there is information in the context that cannot be used, place it under 'unused outline info' and explain why you couldn't use it. If any required detail is missing, use a placeholder in ALL CAPS.",
+        "user_template": "Combine all sections into the final narrative, referencing each part as needed. If you discover unused information, create a section called 'unused outline info'.",
+        "assistant_template": "Guide authors to properly reference {project_narrative_core_content}, {project_narrative_broader_impacts}, and other sections as relevant."
+      },
+      "project_narrative_context": {
+        "developer": "Initial project plan and background details, including discussion of geoscience data, AI approaches (Convolutional neural nets, KGML, PRITHVI), interdisciplinary team information, and references. Also includes: Novel use of earth observation data, climate variation, pest evolutionary ecology, trait data, historical contexts, etc.",
+        "user_template": "Refer to this context as the main source of project background. If something is missing, prompt the authors to provide it.",
+        "assistant_template": "This is the foundation for all sections. Ensure each requirement (Geosciences Advancement, AI Advancement, Partnerships) is addressed if possible."
+      }
+    },
         "bibliography": {
             "developer": "Provide a bibliography of any references cited in the Project Narrative. Each reference must include the names of all authors (in the same sequence in which they appear in the publication), the article and journal title, book title, volume number, page numbers, and year of publication. Include only bibliographic citations. Applicants should be especially careful to follow scholarly practices in providing citations for source materials relied upon when preparing any section of the application. Please click the add attachment button to the right of this field to complete this entry. Reference information is required. Each reference must include the names of all authors (in the same sequence in which they appear in the publication), the article and journal title, book title, volume number, page numbers, and year of publication. (See also Chapter II.D.2.d(iii)(d)) If the proposer has a website address readily available, that information should be included in the citation. It is not NSF's intent, however, to place an undue burden on proposers to search for the URL of every referenced publication. Therefore, inclusion of a website address is optional. A proposal that includes reference citation(s) that do not specify a URL is not considered to be in violation of NSF proposal preparation guidelines and the proposal will still be reviewed. Proposers must be especially careful to follow accepted scholarly practices in providing citations for source materials relied upon when preparing any section of the proposal. While there is no established page limitation for the references, this section must include bibliographic citations only and must not be used to provide parenthetical information outside of the 15-page Project Description.",
             "user_template": "Write the bibliography as described and cite the papers provided",
             "assistant_template": "{relevant_papers}"
         }
     },
-    "output": [
-        {
-            "title": "Project Summary/Abstract",
-            "text_template": "{project_summary}"
-        },
-        {
-            "title": "Project Narrative",
-            "text_template": "{project_narrative}"
-        },
-        {
-            "title": "Bibliography & References Cited",
-            "text_template": "{bibliography}"
-        },
-        {
-            "title": "Documentation for Facilities & Other Resources",
-            "text_template": "AUTHORS FILL IN"
-        },
-        {
-            "title": "Equipment Documentation",
-            "text_template": "AUTHORS FILL IN"
-        }
-    ]
+  "output": [
+    {
+      "title": "Project Summary/Abstract",
+      "text_template": "{project_summary}"
+    },
+    {
+      "title": "Project Narrative: Core Content",
+      "text_template": "{project_narrative_core_content}"
+    },
+    {
+      "title": "Project Narrative: Broader Impacts",
+      "text_template": "{project_narrative_broader_impacts}"
+    },
+    {
+      "title": "Project Narrative: Data Management",
+      "text_template": "{project_narrative_data_management}"
+    },
+    {
+      "title": "Project Narrative: International Involvement",
+      "text_template": "{project_narrative_international_involvement}"
+    },
+    {
+      "title": "Project Narrative: Page Limitations",
+      "text_template": "{project_narrative_page_limitations}"
+    },
+    {
+      "title": "Project Narrative: Prior Support",
+      "text_template": "{project_narrative_prior_support}"
+    },
+    {
+      "title": "Project Narrative: Unfunded Collaborations",
+      "text_template": "{project_narrative_unfunded_collaborations}"
+    },
+    {
+      "title": "Project Narrative: Group Proposals",
+      "text_template": "{project_narrative_group_proposals}"
+    },
+    {
+      "title": "Project Narrative: Renewed Support",
+      "text_template": "{project_narrative_renewed_support}"
+    },
+    {
+      "title": "Bibliography & References Cited",
+      "text_template": "{bibliography}"
+    },
+    {
+      "title": "Documentation for Facilities & Other Resources",
+      "text_template": "AUTHORS FILL IN"
+    },
+    {
+      "title": "Equipment Documentation",
+      "text_template": "AUTHORS FILL IN"
+    }
+  ]
 }
